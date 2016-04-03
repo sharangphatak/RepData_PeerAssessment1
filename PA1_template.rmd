@@ -1,0 +1,103 @@
+---
+title: "PA1_template.rmd"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+
+```
+knitr::opts_chunk$set(echo = TRUE)
+## R Markdown
+```{r}
+
+```
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+
+```{r}
+library(knitr)
+library(dplyr)
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(fig.width=12, fig.height=8, fig.path='Figs/',
+                      echo=TRUE, warning=FALSE, message=FALSE)
+library(lubridate)
+library(ggplot2)
+
+
+data = read.csv("activity.csv",header = TRUE, sep=',', colClasses = c("numeric","character","integer"))
+data$date=ymd(data$date)
+head(data)
+
+steps = data %>%
+  filter(!is.na(steps))%>%
+  group_by(date)%>%
+  summarize(steps=sum(steps))%>%
+  print
+  
+ggplot(steps,aes(x=steps))+geom_histogram(fill="blue",binwidth=1000) + labs(title =" Histogram of number of steps per day", x ="Steps per day",y="Frequency")
+meanSteps = mean(steps$steps, na.rm=TRUE)
+medianSteps = median(steps$steps,na.rm=TRUE)
+
+interval = data%>%
+  filter(!is.na(steps))%>%
+  group_by(interval)%>%
+  summarize(steps=mean(steps))
+
+
+ggplot(interval, aes(x=interval,y=steps))+ geom_line(color="blue")
+
+maxSteps = interval[which.max(interval$steps),]
+maxSteps
+
+missingValues = sum(is.na(data$steps))
+missingValues
+
+completeData =  data
+missingSteps = is.na(completeData$steps)
+avgValueData = tapply(completeData$steps,
+                      completeData$interval,
+                      mean,
+                      na.rm = TRUE,
+                      simplify = TRUE)
+completeData$steps[missingSteps] = 
+  avgValueData[as.character((completeData$interval[missingSteps]))]
+sum(is.na(completeData$steps))
+
+allSteps = completeData %>%
+  filter(!is.na(steps))%>%
+  group_by(date)%>%
+  summarize(steps = sum(steps))%>%
+  print
+
+ggplot(allSteps,
+       aes(x=steps)) +
+  geom_histogram(fill="blue",binwidth=1000)+
+  labs(title ="Histogram of Steps / day that includes
+       missing values",x="Steps / day",
+       y="Frequency")
+
+meanAllSteps = mean(allSteps$steps, na.rm = TRUE)
+medianAllSteps = median(allSteps$steps,na.rm = TRUE)
+
+completeData = mutate(completeData,
+                      weektype = ifelse (weekdays(completeData$date) == "Saturday" | weekdays(completeData$date) == "Sunday","weekend","weekday"))
+completeData$weektype = as.factor(
+  completeData$weektype)
+head(completeData)
+
+
+intFull = completeData%>%
+  group_by(interval,weektype)%>%
+  summarise(steps = mean(steps))
+
+comparePlot = ggplot(intFull,
+                     aes(x=interval,
+                     y=steps,
+                     color=weektype)) +
+  geom_line()+
+  facet_wrap(~weektype,ncol=1,nrow=2)
+print(comparePlot)
+```
